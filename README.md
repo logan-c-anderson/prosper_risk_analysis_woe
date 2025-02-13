@@ -179,51 +179,85 @@ These findings directly shaped our feature engineering and model selection, help
 
 
 
-
 ## Predictive Modeling
 
-After all input variables were binned and each binned variable’s data was examined, their predictive significance was determined. Two models were created; a logistic regression model and a random forest model. The input variables for all models contain an IV greater than 0.025. Each model was built using a 60% (11,393 observations) - 40% (7,594 observations) training to test set split. 
+After all input variables were binned and each binned variable’s data was examined, their predictive significance was determined. Two models were created: a logistic regression model and a random forest model. The input variables for all models contained an IV greater than 0.025. Each model was built using a 60% (11,393 observations) - 40% (7,594 observations) training-to-test split.
 
 ---
 
 ### Logistic Regression Model
 
-The first model to discuss is the logistic regression model. This model was built using the WOE values of the input variables. Only the statistically significant variables were inputted into the final model.
-### Logistic Regression Model Coefficients of Significant Variables
+The first model to discuss is the logistic regression model, built using the WOE values of the input variables. Only the statistically significant variables were included in the final model.
+
+#### Logistic Regression Model Coefficients of Significant Variables
 
 | Variable                         | Coefficient  |
 |----------------------------------|-------------|
-| **Intercept**                    | -1.13921    |
-| **BorrowerCity_WOE**             | 1.53496     |
-| **InquiriesLast6Months_WOE**     | 0.87247     |
-| **BankcardUtilization_WOE**      | 0.63405     |
-| **CurrentDelinquencies_WOE**     | 0.74926     |
-| **BorrowerState_WOE**            | 0.60786     |
-| **RevolvingCreditBalance_WOE**   | 0.48976     |
-| **BorrowerOccupation_WOE**       | 0.77064     |
-| **PublicRecordsLast10Years_WOE** | 0.42573     |
-| **EmploymentStatus_WOE**         | 0.86862     |
-| **DebtToIncomeRatio_WOE**        | 1.36201     |
-| **FirstRecordedCreditLine_WOE**  | 0.99631     |
+| Intercept                        | -1.13921    |
+| BorrowerCity_WOE                 | 1.53496     |
+| InquiriesLast6Months_WOE         | 0.87247     |
+| BankcardUtilization_WOE          | 0.63405     |
+| CurrentDelinquencies_WOE         | 0.74926     |
+| BorrowerState_WOE                | 0.60786     |
+| RevolvingCreditBalance_WOE       | 0.48976     |
+| BorrowerOccupation_WOE           | 0.77064     |
+| PublicRecordsLast10Years_WOE     | 0.42573     |
+| EmploymentStatus_WOE             | 0.86862     |
+| DebtToIncomeRatio_WOE            | 1.36201     |
+| FirstRecordedCreditLine_WOE      | 0.99631     |
 
-The performance of the model was measured using a KS statistic, ROC area under the curve, rank order plot, and a gains table. The KS statistic for the model was 0.3287. A plot for this model’s KS statistic can be seen in Figure 7. A KS value of 0.3287 indicates that the model has a moderate ability to differentiate between the good and bad borrowers. This value is okay, it's better than a random guess (which would be close to 0), so the KS value of 0.3287 is acceptable for this model. Next, the model has an ROC value of 0.7320 This value indicates that the model has good predictive accuracy, it correctly identifies a good chunk of true positives and true negatives.
-#### Distribution of Loans by Occupation Category
-![KS plot for the logistic regression model.](images/ks_log_reg.png)
+The performance of the model was measured using a KS statistic, ROC area under the curve, rank order plot, and a gains table.
+
+- **KS Statistic: 0.3287**  
+  - A KS value of 0.3287 indicates that the model has a moderate ability to differentiate between good and bad borrowers.
+  
+- **ROC AUC: 0.7320**  
+  - This value suggests that the model has good predictive accuracy, correctly identifying a significant proportion of true positives and true negatives.
+
+#### KS Plot for the Logistic Regression Model
+![KS plot for the logistic regression model](images/ks_log_reg.png)
 - KS plot for the logistic regression model.
 
 ---
 
 ### Random Forest Model
 
-The second model developed was a random forest model. Random forest models are an ensemble learning method that expand upon the foundation of decision trees. While decision trees function as singular and independent models, random forests models use the benefits of multiple decision trees to improve predictive performance. Random forest models are known for their high accuracy, ability to work well with new data, and ability to handle large and complex datasets. Like decision trees, this ensemble model has its pros and cons. Some advantages to random forest models include their high accuracy and their resistance to overfitting. By combining predictions from multiple decision trees, random forests are less prone to overfitting compared to individual decision trees. Being able to use multiple trees generalizes the data better and mitigates the risk of overfitting by reducing the impact of noise, missing values, or outliers within the data.
+The second model developed was a random forest model, an ensemble learning method that builds upon decision trees. While decision trees function as singular and independent models, random forest models use multiple decision trees to improve predictive performance.
 
-A random forest model was built on the given dataset with Bad as the target variable, and all of the same statistically significant variables from in the logistic regression model being used as the input variables. The random forest model was built on the same 60:40 training set to test set ratio as the logistic regression model. The number of trees within the random forest model was 500. The performance of this model was measured through a KS statistic, ROC area under the curve, rank order plot, and a gains table. The KS statistic for the model was measured to be 0.2265, slightly lower than that of the logistic regression model. A KS value of 0.2265 indicates that the model has a moderate ability to differentiate between the good and bad borrowers. Next, the model has an ROC value of 0.6590. This value is slightly smaller than the logistic regression model and indicates that the model has good predictive accuracy. The model correctly identifies a relatively good number of true positives and true negatives within the dataset.
+#### Advantages of the Random Forest Model:
+- High accuracy by combining multiple trees.
+- Resistance to overfitting compared to individual decision trees.
+- Handles large and complex datasets effectively.
+
+A random forest model was built on the dataset with **Bad** as the target variable, using the same statistically significant variables as the logistic regression model. The model was trained on the same 60:40 training-to-test ratio. The number of trees used in the random forest model was 500.
+
+The performance of this model was also measured using a KS statistic, ROC AUC, rank order plot, and a gains table.
+
+- **KS Statistic: 0.2265**  
+  - This value is lower than that of the logistic regression model, indicating a moderate ability to differentiate between good and bad borrowers.
+  
+- **ROC AUC: 0.6590**  
+  - This suggests that the model has moderate predictive accuracy, though slightly weaker than the logistic regression model.
+
+#### KS Plot for the Random Forest Model
 ![KS plot for the random forest model](images/ks_rand_forest.png)
-- KS plot for the random forest model
+- KS plot for the random forest model.
+
+#### Feature Importance Plot for the Random Forest Model
 ![Feature importance plot for random forest model](images/rand_forest_variable_importance_plot.jpeg)
-- Feature importance plot for random forest model.
+- Feature importance plot for the random forest model.
 
---- 
+---
 
-## Conclusion:
-In conclusion, this analysis used logistic regression and random forest models to predict the risk of loan default among a large amount of borrowers. The models that were developed are accurate and reliable risk models that can identify the likelihood of a borrower failing to repay a loan. With the logistic regression model performing better than the random forest model. Binning variables into categorical types proved successful as the method simplified the complexity of data and helped with the process of building reliable predictive models. Calculating information gain value and identifying weights of evidence (WOE) for each bin proved successful as well. Overall, the dataset was very messy and needed much cleaning before it entered any models. The data had some unique characteristics that had solutions to cleaning. Once put into a logistic regression and random forest model, the decent KS statistic and ROC value of the models indicate that they both performed relatively well on the given dataset. However, the results are sufficient for the purposes and scope of this paper, it is believed that the model can be improved if further analysis is pursued.
+## Conclusion
+
+This analysis applied logistic regression and random forest models to predict loan default risk among borrowers. The models developed are accurate and reliable for assessing borrower risk.
+
+### Key Findings:
+- The logistic regression model performed better than the random forest model.
+- Binning continuous variables into categorical groups simplified the data structure and improved model performance.
+- Calculating Information Value (IV) and Weight of Evidence (WOE) for each bin was effective.
+- The dataset required significant data cleaning due to missing values and inconsistencies.
+- KS Statistic and ROC AUC values suggest that both models have moderate predictive power on the given dataset.
+
+While the results are sufficient for the scope of this study, further analysis could improve model performance. Overall, the methods applied in this analysis provide a structured approach to loan default prediction, demonstrating how WOE, binning, and machine learning can enhance risk assessment in financial modeling.
