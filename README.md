@@ -86,7 +86,7 @@ EDA revealed clear patterns in borrower demographics, financial behaviors, and c
 - Outlier Detection: Found extreme values in credit utilization and delinquency counts, which were addressed through binning and transformations during preprocessing (see above).
 ### Visualizing Loan Default Risk
 To better understand the relationships between borrower characteristics and loan default risk, several data visualizations were created based on the insights gathered from EDA.
-  - # Distribution of Loans by Occupation Category
+![Distribution of Loans by Occupation Category](images/distribution_of_loans_by_occupation.JPEG)
   - This bar chart illustrates the number of loans across different occupation categories. The "Other" category has the highest number of loans, reacall that job titles originally were entered as free text tehrefore this really emphasizes the wide range of borrowers whose job titles didn’t fit neatly into a specific category.
   - # Proportion of Bad Loans by Occupation Category
   - This visualization shows that trades, service industry, and public service occupations experience the highest default rates, indicating that employment stability plays a key role in loan repayment ability.
