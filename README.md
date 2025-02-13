@@ -1,7 +1,16 @@
-# Loan Default Prediction Using Weight of Evidence (WOE), Binning, and Machine Learning
+# **Loan Default Prediction Using Weight of Evidence (WOE), Binning, and Machine Learning**
 
-## Overview
-This project focuses on building predictive models to assess loan default risk using real-world data from Prosper.com. The goal is to develop accurate and interpretable models that identify borrowers who are at higher risk of default. The project follows a structured data science workflow, incorporating data cleaning, exploratory analysis, feature engineering, model development, and evaluation.
+## Analysis Overview
+
+This project focuses on predicting loan default risk using machine learning models applied to real-world data from Prosper.com. The objective was to develop a model that accurately identifies high-risk borrowers, enabling better risk assessment for lenders. The analysis follows a structured data science workflow, incorporating data preprocessing, exploratory data analysis (EDA), feature engineering, and predictive modeling.
+
+---
+
+### Objectives
+- Identify key financial and demographic factors that influence loan default.
+- Use binning and Weight of Evidence (WOE) transformations to improve model interpretability.
+- Build and evaluate logistic regression and random forest models to classify loan default risk.
+- Compare model performance using KS statistic, ROC AUC, rank order plots, and gains tables.
 
 ---
 
