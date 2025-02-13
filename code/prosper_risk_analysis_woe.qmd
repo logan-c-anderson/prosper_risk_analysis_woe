@@ -1,0 +1,488 @@
+---
+title: "PA I Final"
+output: pdf_document
+editor: visual
+---
+
+## EDA
+
+Predictive Final. With the goal of...
+
+## Load Data
+
+Prosper data set containing...
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(pracma)
+library(corrplot)
+library(pROC)
+library(coefplot)
+library(MASS)
+library(tidyverse)
+library(tidymodels)
+library(caret)
+library(explore)
+library(outliers)
+library(tidyr)
+library(stats)
+library(Rprofet)
+# library(earth)
+library(faraway)
+library(lattice)
+library(gmodels)
+library(gains)
+library(maps)
+library(mapproj)
+
+prosper_data <- read.csv("C:/Users/logan/OneDrive - South Dakota State University - SDSU/Archive/Spring 2024/Predictive Analytics I/Final Project/prosper.csv", header=TRUE)
+```
+
+[**EDA**]{.underline}
+
+1.  View Structure of dataset
+
+    1.  25,606 NA's (227,844 total observations within dataset) (0.112% of dataset is missing)
+
+    2.  Bad rate: 4952/18987 = 0.26081%
+
+2.  Make a subset for model input variables
+
+    1.  Input variables are: "AmountRemaining", "BorrowerCity", "BorrowerState", "DebtToIncomeRatio", "IsBorrowerHomeowner", "ListingKey", "ListingNumber", "MemberKey", "LoanKey", "CurrentDelinquencies", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "FirstRecordedCreditLine", "TotalCreditLines", "InquiriesLast6Months", "AmountDelinquent", "PublicRecordsLast12Months", "CurrentCreditLines", "OpenCreditLines", "RevolvingCreditBalance", "BankcardUtilization", "EmploymentStatus", "LengthStatusMonths", "Income", "BorrowerOccupation"
+
+3.  FirstRecordedCreditLine
+
+    1.  Extract year from FirstRecordedCreditLine by formatting it from "yyyy-mm-ddThh:mm:ss" to "yyyy"
+
+4.  Change IsBorrowerHomeowner from "TRUE/FALSE" to "0/1"
+
+5.  BorrowerOccupation
+
+    1.  Combine "Profession that is not part of t" and "Professional" into "Other"
+
+    2.  Bin Occupation into Small, Medium, Large bins??
+
+    3.  57/300 students bad
+
+        1.  Student College - Freshman: 6/15 Bad
+
+        2.  Student College - Sophomore: 11/33 Bad
+
+        3.  Student College - Junior: 12/61 Bad
+
+        4.  Student College - Senior: 12/85 Bad
+
+        5.  Student College - Grad School: 9/84 Bad
+
+        6.  Student College - Technical School: 3/10 Bad
+
+        7.  Student College - Community College: 4/12 Bad
+
+```{r}
+#1.View Structure of dataset
+names(prosper_data)
+summary(prosper_data)
+str(prosper_data)
+class(prosper_data)
+
+#2.Make a subset for model input variables
+input_vars <- prosper_data[, c("AmountRemaining", "BorrowerCity", "BorrowerState", "DebtToIncomeRatio", "IsBorrowerHomeowner", "ListingKey", "ListingNumber", "MemberKey", "AmountBorrowed", "LoanKey", "CurrentDelinquencies", "DelinquenciesLast7Years", "PublicRecordsLast10Years", "FirstRecordedCreditLine", "TotalCreditLines", "InquiriesLast6Months", "AmountDelinquent", "PublicRecordsLast12Months", "CurrentCreditLines", "OpenCreditLines", "RevolvingCreditBalance", "BankcardUtilization", "EmploymentStatus", "LengthStatusMonths", "Income", "BorrowerOccupation", "Bad")]
+# Create ID
+input_vars$ID <- c(1:nrow(input_vars))
+sapply(input_vars, function(x) sum(is.na(x)))
+
+# 3.FirstRecordedCreditLine (format)
+format_date <- function(date_column) {
+  return(substr(date_column, 1, 4))
+}
+input_vars$FirstRecordedCreditLine <- format_date(input_vars$FirstRecordedCreditLine)
+
+# 4.Change IsBorrowerHomeowner from "TRUE/FALSE" to "0/1"
+input_vars$IsBorrowerHomeowner <- ifelse(
+  input_vars$IsBorrowerHomeowner == TRUE, 1, 0)
+
+# write.csv(input_vars, file = "C:\\Users\\logan\\OneDrive - South Dakota State University - SDSU\\Predictive Analytics I\\Final Project\\input_Vars.csv")
+
+# 5.BorrowerOccupation
+input_vars$BorrowerOccupation <- ifelse(input_vars$BorrowerOccupation %in% c("Profession that is not part of t", "Professional"), "Other", input_vars$BorrowerOccupation)
+
+# Categorization based on occupation
+input_vars <- input_vars %>%
+  mutate(BorrowerOccupation = case_when(
+    BorrowerOccupation %in% c("Nurse's Aide", "Nurse - Licensed Practical Nurse", 
+                              "Nurse - Registered Nurse (RN)", "Medical Technician",
+                              "Dentist", "Doctor", "Pharmacist") ~ "Medical and Healthcare",
+    BorrowerOccupation %in% c("Engineer - Chemical", "Engineer - Electrical", 
+                              "Engineer - Mechanical") ~ "Engineering",
+    BorrowerOccupation %in% c("Teacher", "Professor", "Teacher's Aide",
+                              startsWith(BorrowerOccupation, "Student")) ~ "Education",
+    BorrowerOccupation %in% c("Accountant/CPA", "Investor", "Executive") ~ "Business and Finance",
+    BorrowerOccupation %in% c("Civil Service", "Military Enlisted", "Military Officer",
+                              "Police Officer/Correction Office", "Fireman", "Postal Service") ~ "Public Service",
+    BorrowerOccupation %in% c("Computer Programmer", "Scientist", "Chemist", "Biologist") ~ "Science and Technology",
+    BorrowerOccupation %in% c("Attorney", "Secretary/Administrative Assista", "Clerical") ~ "Legal and Administrative",
+    BorrowerOccupation %in% c("Tradesman - Carpenter", "Tradesman - Electrician", 
+                              "Tradesman - Mechanic", "Tradesman - Plumber", "Construction") ~ "Trades and Skilled Labor",
+    BorrowerOccupation %in% c("Food Service", "Food Service Management", 
+                              "Retail Management", "Sales - Commission", "Sales - Retail",
+                              "Waiter/Waitress") ~ "Service Industry",
+    TRUE ~ "Other"
+  ))
+
+```
+
+## Bin Data
+
+ListingKey: An ID to uniquely identify each loan or listing, and distinguish it from others.
+
+ListingNumber: It may serve a similar purpose as ListingKey, providing a unique identifier for each listing, but the exact difference likely is dependent on a company specific database query structure.
+
+MemberKey: A unique identifier for each member or borrower on the lending platform.
+
+LoanKey: Similar to ListingKey, LoanKey is a unique identifier for each loan or loan application on the platform. It helps differentiate one loan from another.
+
+```{r}
+#Use BinProfet function to bin the data
+binData = BinProfet(data = input_vars, id = "ID", target = "Bad", num.bins = 12)
+
+names(binData)
+summary(binData)
+str(binData)
+
+#Plot binned data
+for (i in 3:27) {
+  WOEplotter(binData, "Bad", names(binData)[i])
+}
+
+#How to manually change bin cuts
+#data$UtilityBins=cut(data$Utility,breaks=c(-Inf,0,.01,.25,.5,.90,Inf),right = F)
+
+
+WOEdata = WOEProfet(data = binData, id = "ID", target = "Bad")
+names(WOEdata)
+
+#Get information values for each variable
+head(WOEdata$IV[order(-WOEdata$IV$IV),],20)
+
+view(WOEdata$WOE)
+```
+
+## EDA Plots
+
+```{r}
+# Bar plot for Distribution of Loans by Occupation Category
+ggplot(input_vars, aes(x = BorrowerOccupation, fill = BorrowerOccupation)) +
+  geom_bar() +
+  theme_minimal() +
+  labs(title = "Distribution of Loans by Occupation Category",
+       x = "Occupation Category", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Box plot for Debt to Income Ratio by Occupation Category
+ggplot(input_vars, aes(x = BorrowerOccupation, y = DebtToIncomeRatio, fill = BorrowerOccupation)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Debt to Income Ratio by Occupation Category",
+       x = "Occupation Category", y = "Debt to Income Ratio") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+bad_loans_by_occupation <- input_vars %>%
+  group_by(BorrowerOccupation) %>%
+  summarise(ProportionBad = mean(Bad, na.rm = TRUE))
+
+# Bar plot for Proportion of Bad Loans by Occupation Category
+ggplot(bad_loans_by_occupation, aes(x = BorrowerOccupation, y = ProportionBad, fill = BorrowerOccupation)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Proportion of Bad Loans by Occupation Category",
+       x = "Occupation Category", y = "Proportion Bad") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+### **Financial Health Metrics Analysis**
+
+#### **1. Debt-to-Income Ratio**
+
+```{r}
+# Histogram of Debt to Income Ratio
+ggplot(input_vars, aes(x = DebtToIncomeRatio)) +
+  geom_histogram(bins = 30, fill = "cornflowerblue", color = "black") +
+  ggtitle("Distribution of Debt to Income Ratio") +
+  xlab("Debt to Income Ratio") + ylab("Frequency")
+
+# Boxplot of Debt to Income Ratio by Bad status
+ggplot(input_vars, aes(x = as.factor(Bad), y = DebtToIncomeRatio, fill = as.factor(Bad))) +
+  geom_boxplot() +
+  ggtitle("Debt to Income Ratio by Loan Performance") +
+  xlab("Loan Performance (0 = Good, 1 = Bad)") + ylab("Debt to Income Ratio")
+```
+
+#### **2. Credit Utilization**
+
+```{r}
+# Histogram of Bankcard Utilization
+ggplot(input_vars, aes(x = BankcardUtilization)) +
+  geom_histogram(bins = 30, fill = "cornflowerblue", color = "black") +
+  ggtitle("Distribution of Bankcard Utilization") +
+  xlab("Bankcard Utilization") + ylab("Frequency")
+```
+
+#### **3. Delinquency Rates**
+
+```{r}
+# Histogram for Current Delinquencies
+ggplot(input_vars, aes(x = CurrentDelinquencies)) +
+  geom_histogram(bins = 30, fill = "tomato", color = "black") +
+  ggtitle("Histogram of Current Delinquencies") +
+  xlab("Current Delinquencies") + ylab("Frequency")
+```
+
+## **Borrower Demographics Analysis**
+
+#### **1. Employment Status**
+
+```{r}
+# Bar plot of Loan Performance by Employment Status
+employment_status_summary <- input_vars %>%
+  group_by(EmploymentStatus) %>%
+  summarise(AverageDefault = mean(Bad, na.rm = TRUE))
+
+ggplot(employment_status_summary, aes(x = EmploymentStatus, y = AverageDefault, fill = EmploymentStatus)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Average Default Rate by Employment Status") +
+  xlab("Employment Status") + ylab("Average Default Rate")
+```
+
+## Split Data Into Train/Test Sets
+
+Split the dataset into training (60%) and testing (40%) sets
+
+train_data: 11,393\
+test_data: 7,594
+
+```{r}
+#Split into training and testing datasets
+set.seed(123)
+
+# # Split the dataset into training (60%) and testing (40%) sets
+# split_index <- createDataPartition(input_vars$Bad, p = 0.60, list = FALSE)
+# # Create training set
+# train_data <- input_vars[split_index, ]
+# # Create testing set
+# test_data <- input_vars[-split_index, ]
+
+# Split the data into training (60%) and testing (40%) sets
+split_index <- createDataPartition(WOEdata$WOE$Bad, p = 0.60, list = FALSE)
+# Create training set
+train_data <- WOEdata$WOE[split_index, ]
+# Create testing set
+test_data <- WOEdata$WOE[-split_index, ]
+#Sizes of each data subset
+dim(train_data)
+dim(test_data)
+```
+
+## Model Performance Functions
+
+```{r}
+#Input:
+# X: A data frame with 2+n columns (ID, Bad, model1.pred, ..., modeln.pred)
+# n: An integer n <=6 which indicates how many models scored.
+# names: A vecor of the model(s) names
+# plot: A boolean (True/False) which control the display of the ROC plot
+
+roc <- function(X,n=1,names=c("Logistic Model", "WOE Model"),plot=T){
+  library(ROCR)
+  color <- c('navy','cyan4', 'gold2', 'yellowgreen','coral','chocolate','red')  
+  auc <- c()
+  
+  if(n>1){
+    roc.preds <- prediction(X[,3],X[,2],label.ordering=NULL)
+    roc <-  performance(roc.preds,measure='tpr',x.measure='fpr')
+    
+    if(plot==T){
+      plot(roc@x.values[[1]],roc@y.values[[1]],main='ROC Chart',col=color[1],type='l',xaxt='n',yaxt='n',
+           xlab="False Positive Rate",ylab='True Positive Rate')
+      abline(0,1,lty=2,col='black')
+      axis(1,seq(0,1,.1),lwd=2)
+      axis(2,seq(0,1,.1),lwd=2)
+      legend('bottomright',names,lty=1,col=color[1:n],box.lwd=1,lwd=3)
+    }
+    t <- performance(roc.preds,measure='auc')
+    auc <- c(auc, t@y.values)
+    for(i in 2:n){
+      roc.preds <- prediction(X[,2+i],X[,2],label.ordering=NULL)
+      roc <- performance(roc.preds,measure='tpr',x.measure='fpr')
+      if(plot==T){
+        points(roc@x.values[[1]],roc@y.values[[1]],type='l',col=color[i])
+      }
+      t <- performance(roc.preds,measure='auc')
+      auc <- c(auc, t@y.values)
+    }
+    names(auc) <- names
+    return(auc)
+  }else{
+    roc.preds <- prediction(X[,3],X[,2],label.ordering=NULL)
+    roc <- performance(roc.preds,measure='tpr',x.measure='fpr')
+    if(plot==T){
+      plot(roc,main='ROC Chart',col='navy',xlab='False Positive Rate',
+           ylab='True Positive Rate')
+    }
+    auc <- performance(roc.preds,measure='auc')
+    return(auc@y.values)  
+  }
+}
+
+
+
+#Input:
+# X: is data frame with 3 columns (ID, Bad, model1.pred)
+# names: A vecor of the model name
+# plot: A boolean (True/False) which control the display of the KS plot
+
+ks <- function(X,names=c("Logistic Model"),plot=T){
+  
+  A <- X[order(-X[,3]),]
+  rank <- rank(-A[,3],ties.method='average')
+  A$rank <- rank
+  cum_1 <- cumsum(A[,2])
+  A$cum_1 <- cum_1
+  cum_0 <- cumsum(A[,2]==0)
+  A$cum_0 <- cum_0
+  percentile <- round(rank/length(A[,1]),4)
+  A$percentile <- percentile
+  cum_perc_of_1 <- round(cum_1/sum(A[,2]),4)
+  A$cum_perc_of_1 <- cum_perc_of_1
+  cum_perc_of_0 <- round(cum_0/sum(A[,2]==0),4)
+  A$cum_perc_of_0 <- cum_perc_of_0
+  diff <- A$cum_perc_of_1 - A$cum_perc_of_0
+  ks.stat <- max(diff)
+  
+  if(plot==T){
+    plot(A$percentile,A$cum_perc_of_1,main=paste("KS Chart\n",names),xlab='%of Sorted Population',
+         ylab='True Positive Rate',col='navy',type='l',xaxt='n',yaxt='n')
+    lines(A$percentile,A$cum_perc_of_0,col='gold2',type='l')
+    abline(0,1,lty=2,col='black')
+    abline(v=ks.stat,lty=5,col='red')
+    axis(1,seq(0,1,.1),lwd=2)
+    axis(2,seq(0,1,.1),lwd=2)
+  }
+  #return(A)
+  return(ks.stat)
+}
+```
+
+## Logistic Regression Model
+
+```{r}
+log_model <- glm(Bad ~ BorrowerCity_WOE + InquiriesLast6Months_WOE + BankcardUtilization_WOE + CurrentDelinquencies_WOE + BorrowerState_WOE+ RevolvingCreditBalance_WOE+ BorrowerOccupation_WOE+ PublicRecordsLast10Years_WOE+ EmploymentStatus_WOE + DebtToIncomeRatio_WOE+ FirstRecordedCreditLine_WOE,
+                      data = train_data,
+                      family = binomial)
+
+# Print summary of the logistic model
+summary(log_model)
+
+# Make predictions on the test set
+test_data$predictions1 <- predict(log_model, newdata = test_data, type = "response")
+
+# Convert predicted probabilities to binary (0 or 1)
+test_data$predicted_bad1 <- ifelse(test_data$predictions1 > 0.5, 1, 0)
+
+# Create the input data frame for the custom ROC and KS functions
+roc_ks_data <- data.frame(
+  ID = 1:nrow(test_data),  # Creating a unique identifier
+  Bad = test_data$Bad,     # Actual values (1 = bad, 0 = good)
+  Predicted = test_data$predictions1  # Model-predicted probabilities
+)
+
+# Compute ROC Curve and AUC using custom function
+auc_value <- roc(roc_ks_data, n = 1, names = "Logistic Model", plot = TRUE)
+print(paste("AUC:", auc_value))
+
+# Compute KS Statistic using custom function
+ks_value <- ks(roc_ks_data, names = "Logistic Model", plot = TRUE)
+print(paste("KS Statistic:", ks_value))
+
+
+
+
+# Create gains table
+gains_table1 <- gains(actual = test_data$Bad, predicted = test_data$predictions1)
+
+#Print Gains Table
+gains_table1
+
+# Plot rank-order plot
+plot(gains_table1, main = "Figure 6: Logistic Regression Rank Order Plot")
+
+#Significant Variables
+# Extract the p-values from the summary of the logistic regression model
+p_values <- summary(log_model)$coefficients[, "Pr(>|z|)"]
+
+# Select significant variables based on a predetermined significance level (e.g., p-value less than 0.05)
+significant_vars <- names(p_values[p_values < 0.05])
+
+# Print the significant variables
+print(significant_vars)
+```
+
+## Random Forest Model
+
+```{r}
+# Split the data into training (60%) and testing (40%) sets
+split_index <- createDataPartition(WOEdata$WOE$Bad, p = 0.60, list = FALSE)
+# Create training set
+train_data <- WOEdata$WOE[split_index, ]
+# Create testing set
+test_data <- WOEdata$WOE[-split_index, ]
+
+#Sizes of each data subset
+dim(train_data)
+dim(test_data)
+
+##################################
+#New Type of Model - Random Forest
+library(randomForest)
+
+# Fit the random forest model
+rf_model <- randomForest(Bad ~ InquiriesLast6Months_WOE + BankcardUtilization_WOE + CurrentDelinquencies_WOE + AmountDelinquent_WOE + RevolvingCreditBalance_WOE + PublicRecordsLast10Years_WOE + DelinquenciesLast7Years_WOE + OpenCreditLines_WOE + CurrentCreditLines_WOE+ AmountBorrowed_WOE+ Income_WOE+ DebtToIncomeRatio_WOE+ TotalCreditLines_WOE+ PublicRecordsLast12Months_WOE, data = train_data)
+
+# Print the summary of the model
+print(rf_model)
+summary(rf_model)
+
+# Make predictions on the test set
+test_data$rf_predictions <- predict(rf_model, newdata = test_data, type = "response")
+
+# Convert predicted probabilities to binary (0 or 1)
+test_data$rf_predicted_bad <- ifelse(test_data$rf_predictions > 0.5, 1, 0)
+
+# Prepare data for ROC and KS functions
+rf_roc_ks_data <- data.frame(
+  ID = 1:nrow(test_data),  # Unique identifier
+  Bad = test_data$Bad,     # Actual values
+  Predicted = test_data$rf_predictions  # Model-predicted probabilities
+)
+
+# Compute ROC Curve and AUC for Random Forest
+rf_auc_value <- roc(rf_roc_ks_data, n = 1, names = "Random Forest Model", plot = TRUE)
+print(paste("Random Forest AUC:", rf_auc_value))
+
+# Compute KS Statistic for Random Forest
+rf_ks_value <- ks(rf_roc_ks_data, names = "Random Forest Model", plot = TRUE)
+print(paste("Random Forest KS Statistic:", rf_ks_value))
+
+# Create gains table
+gains_table_rf <- gains(actual = test_data$Bad, predicted = test_data$rf_predictions)
+
+# Plot rank-order plot
+plot(gains_table_rf, main = "Random Forest Rank Order Plot")
+
+# Plot the OOB error rate with a title
+plot(rf_model, main = "OOB Error Rate vs. Number of Trees")
+
+```
