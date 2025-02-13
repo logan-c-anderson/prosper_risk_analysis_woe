@@ -88,17 +88,17 @@ EDA revealed clear patterns in borrower demographics, financial behaviors, and c
 To better understand the relationships between borrower characteristics and loan default risk, several data visualizations were created based on the insights gathered from EDA.
 ![Distribution of Loans by Occupation Category](images/distribution_of_loans_by_occupation.jpeg)
   - This bar chart illustrates the number of loans across different occupation categories. The "Other" category has the highest number of loans, reacall that job titles originally were entered as free text tehrefore this really emphasizes the wide range of borrowers whose job titles didn’t fit neatly into a specific category.
-  - # Proportion of Bad Loans by Occupation Category
+![Proportion of Bad Loans by Occupation Category](images/proportion_of_bad_loans_by_occupation_category.jpeg)
   - This visualization shows that trades, service industry, and public service occupations experience the highest default rates, indicating that employment stability plays a key role in loan repayment ability.
-  - # Average Default Rate by Employment Status
+![Average Default Rate by Employment Status](images/avg_default_rate_by_employment_status.jpeg)
   - Retired and self-employed borrowers show the highest loan default rates, suggesting that income stability is a strong predictor of credit risk.
-  - # Debt-to-Income Ratio by Occupation Category
+![Debt-to-Income Ratio by Occupation Category](images/box_plot_for_debt_to_income_ratio_by_occupation_category.jpeg)
   - This box plot shows how debt-to-income ratios vary across different occupation groups. While most categories have a similar median DTI, outliers exist in every category, affecting overall risk assessment.
-  - # Histogram of Current Delinquencies
+![Histogram of Current Delinquencies](images/histogram_for_current_delinquencies.jpeg)
   - Most borrowers have no delinquencies, but a small group has a high number of delinquencies, making it an important risk factor to consider.
-  - # Histogram of Bankcard Utilization
+![Histogram of Bankcard Utilization](images/histogram_of_bankcard_utilization.jpeg)
   - Most borrowers keep their credit utilization low, but a small group with very high utilization stands out. These overextended borrowers may be at a higher risk of default.
-  - # Inquiries in the Last 6 Months Binned by WOE
+![Inquiries in the Last 6 Months Binned by WOE](images/inquiries_last_six_months_bins.jpeg)
   - Weight of Evidence (Left Plot): WoE measures how strongly a feature separates good vs. bad borrowers. Positive WoE means higher risk, while negative WoE means lower risk. Borrowers with 0 inquiries have a negative WoE, therefore present lower risk. While contrarily, those with 13+ inquiries have the highest WoE, and are therefore strongly linked to a higher risk of defaulting.
   - More Credit Inquiries = Higher Default Risk (Middle Plot): The default rate increases as the number of inquiries goes up. Borrowers with fewer inquiries are generally more reliable, while those with 6 or more inquiries are much more likely to default, possibly because they’re struggling financially or frequently seeking new credit.
   - Most Borrowers Have Few Inquiries (Right Plot): The majority of borrowers fall into the 0-2 inquiries range, meaning frequent credit applications are uncommon. This reinforces the idea that borrowers with many inquiries might be outliers and at higher risk.
